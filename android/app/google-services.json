@@ -1,0 +1,30 @@
+{
+  "project_info": {
+    "project_number": "293869352804",
+    "firebase_url": "https://kwaapp-default-rtdb.europe-west1.firebasedatabase.app",
+    "project_id": "kwaapp",
+    "storage_bucket": "kwaapp.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:293869352804:android:83a84bba2e680afd602c71",
+        "android_client_info": {
+          "package_name": "com.example.kwa_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBHi9J9KgbiIxpCsgvnoio8GoijZ3Txvxw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
