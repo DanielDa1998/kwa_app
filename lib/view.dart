@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
+import 'package:kwa_app/lesson_editor.dart';
 
 class DailyView extends StatelessWidget {
   @override
@@ -43,63 +44,84 @@ class DailyView extends StatelessWidget {
                     }
                     String studentName = studentSnapshot.data!.get('name');
 
-                    // Hier erstellen wir das angepasste Layout mit Card
-                    return Card(
-                      child: Padding(
-                        padding: const EdgeInsets.all(16.0),
-                        child: Column(
-                          children: [
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    return GestureDetector(
+                        onTap: () {
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                                builder: (context) =>
+                                    EditLessonPage(lesson: lesson)),
+                          );
+                        },
+                        child: Card(
+                          color: Colors
+                              .black, // Setzt die Farbe der Card auf Schwarz
+                          child: Padding(
+                            padding: const EdgeInsets.all(16.0),
+                            child: Column(
                               children: [
-                                Text(
-                                  DateFormat('EEEE, d. MMMM', 'de_DE').format(
-                                      start), // Beispiel: Montag, 20. Mai
-                                  style: TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.bold),
-                                ),
-                                Text(
-                                  '${DateFormat('HH:mm').format(start)} - ${DateFormat('HH:mm').format(end)}',
-                                  style: TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.bold),
-                                ),
-                              ],
-                            ),
-                            SizedBox(height: 8),
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              crossAxisAlignment: CrossAxisAlignment.center,
-                              children: [
-                                Expanded(
-                                  child: Row(
-                                    children: [
-                                      Icon(Icons.person,
-                                          color: Theme.of(context)
-                                              .colorScheme
-                                              .primary),
-                                      SizedBox(width: 8),
-                                      Text(
-                                        '${lesson.get('subject')} - $studentName',
-                                        style: TextStyle(fontSize: 16),
+                                Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Text(
+                                      DateFormat('EEEE, d. MMMM', 'de_DE').format(
+                                          start), // Beispiel: Montag, 20. Mai
+                                      style: TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors
+                                            .white, // Setzt die Textfarbe auf Weiß, damit sie auf schwarzem Hintergrund lesbar ist
                                       ),
-                                    ],
-                                  ),
+                                    ),
+                                    Text(
+                                      '${DateFormat('HH:mm').format(start)} - ${DateFormat('HH:mm').format(end)}',
+                                      style: TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors
+                                            .blue, // Setzt die Textfarbe auf Weiß
+                                      ),
+                                    ),
+                                  ],
                                 ),
-                                Text(
-                                  '${(duration.inMinutes / 60 * lesson.get('pay')).toStringAsFixed(2)} €',
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.bold,
-                                  ),
+                                SizedBox(height: 8),
+                                Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
+                                  crossAxisAlignment: CrossAxisAlignment.center,
+                                  children: [
+                                    Expanded(
+                                      child: Row(
+                                        children: [
+                                          Icon(Icons.person,
+                                              color: Colors
+                                                  .blue), // Ändert die Icon-Farbe zu Weiß
+                                          SizedBox(width: 8),
+                                          Text(
+                                            '${lesson.get('subject')} - $studentName',
+                                            style: TextStyle(
+                                                fontSize: 16,
+                                                color: Colors
+                                                    .white), // Setzt die Textfarbe auf Weiß
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    Text(
+                                      '${(duration.inMinutes / 60 * lesson.get('pay')).toStringAsFixed(2)} €',
+                                      style: TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors
+                                            .green, // Setzt die Textfarbe auf Weiß
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ],
                             ),
-                          ],
-                        ),
-                      ),
-                    );
+                          ),
+                        ));
                   },
                 );
               },

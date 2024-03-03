@@ -124,12 +124,10 @@ class _NewLessonState extends State<NewLesson> {
   @override
   void initState() {
     super.initState();
-    // Setzen Sie hier die Start- und Endzeiten, wenn Sie zusätzliche Logik benötigen
     selectedStartTime = DateTime.now().subtract(Duration(hours: 1));
     selectedEndTime = DateTime.now();
   }
 
-  // Beispiel Listen für Schüler und Fächer
   final List<String> schuelerListe = ['Anna', 'Ben', 'Clara', 'David'];
   final List<String> faecherListe = [
     'Mathematik',
@@ -137,29 +135,21 @@ class _NewLessonState extends State<NewLesson> {
     'Biologie',
     'Geschichte'
   ];
-
-  // Fügen Sie dies zu Ihrer _NewLessonState-Klasse hinzu
   final TextEditingController stundensatzController = TextEditingController();
 
-  Widget buildStundensatzField(BuildContext context) {
-    return CustomTextField(
-      controller: stundensatzController,
-      label: "Stundensatz",
-    );
-  }
-
-// Variablen für die ausgewählten Werte
-  String? ausgewaehlterSchueler;
+  // Anpassung hier: Liste von Strings statt einem einzelnen String
+  List<String> ausgewaehlteSchueler = [];
   String? ausgewaehltesFach;
+
   void _waehleSchueler(BuildContext context) async {
-    final selectedStudent = await Navigator.push(
+    final List<String>? selectedStudents = await Navigator.push<List<String>>(
       context,
       MaterialPageRoute(builder: (context) => StudentSelectionPage()),
     );
 
-    if (selectedStudent != null) {
+    if (selectedStudents != null) {
       setState(() {
-        ausgewaehlterSchueler = selectedStudent;
+        ausgewaehlteSchueler = selectedStudents;
       });
     }
   }
@@ -183,7 +173,7 @@ class _NewLessonState extends State<NewLesson> {
       builder: (BuildContext builder) {
         return Container(
           decoration: BoxDecoration(
-            color: Color.fromARGB(255, 66, 66, 66), // Dezentes Hintergrundfarbe
+            color: Color.fromARGB(255, 75, 5, 5), // Dezentes Hintergrundfarbe
             borderRadius: BorderRadius.only(
               topLeft: Radius.circular(15),
               topRight: Radius.circular(15),
@@ -376,8 +366,8 @@ class _NewLessonState extends State<NewLesson> {
         children: <Widget>[
           CustomButton(
             text: firstButtonText,
-            additionalText:
-                ausgewaehlterSchueler, // Zeigt den ausgewählten Schüler an
+            additionalText: ausgewaehlteSchueler
+                .join(", "), // Anzeige als kommaseparierte Liste
             onTap: firstButtonText == "Schüler"
                 ? () => _waehleSchueler(context)
                 : null,
@@ -385,7 +375,7 @@ class _NewLessonState extends State<NewLesson> {
           Divider(color: Colors.grey, height: 1),
           CustomButton(
             text: secondButtonText,
-            additionalText: ausgewaehltesFach, // Zeigt das ausgewählte Fach an
+            additionalText: ausgewaehltesFach,
             onTap:
                 secondButtonText == "Fach" ? () => _waehleFach(context) : null,
           ),
@@ -393,13 +383,13 @@ class _NewLessonState extends State<NewLesson> {
       ),
     );
   }
+}
 
-  Widget buildSingleButton(BuildContext context, String buttonText) {
-    return CustomButton(
-      text: buttonText,
-      onTap: () {
-        // Logik für "Stundensatz"
-      },
-    );
-  }
+final TextEditingController stundensatzController = TextEditingController();
+
+Widget buildStundensatzField(BuildContext context) {
+  return CustomTextField(
+    controller: stundensatzController,
+    label: "Stundensatz",
+  );
 }

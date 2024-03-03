@@ -97,6 +97,34 @@ class _MyCustomPageState extends State<MyCustomPage> {
 
   @override
   Widget build(BuildContext context) {
+    // Bestimme den Inhalt basierend auf dem ausgewählten Tab
+    Widget bodyContent;
+    switch (selectedTab) {
+      case 0:
+        bodyContent = DailyView(); // Der originale Inhalt für das erste Icon
+        break;
+      case 1:
+        bodyContent = Scaffold(
+          appBar: AppBar(title: Text('Alle Schüler')),
+          body: Center(child: Text('Inhalte für Alle Schüler')),
+        );
+        break;
+      case 2:
+        bodyContent = Scaffold(
+          appBar: AppBar(title: Text('Raumplaner')),
+          body: Center(child: Text('Comming soon')),
+        );
+        break;
+      case 3:
+        bodyContent = Scaffold(
+          appBar: AppBar(title: Text('Einstellungen')),
+          body: Center(child: Text('Inhalte für Einstellungen')),
+        );
+        break;
+      default:
+        bodyContent = DailyView(); // Fallback, sollte nie erreicht werden
+    }
+
     return WillPopScope(
       onWillPop: () {
         if (items[selectedTab].navKey.currentState?.canPop() ?? false) {
@@ -111,7 +139,7 @@ class _MyCustomPageState extends State<MyCustomPage> {
           title: const Text('RAIJU'),
           actions: <Widget>[
             IconButton(
-              icon: const Icon(Icons.filter_list), // Filter-Icon hinzufügen
+              icon: const Icon(Icons.filter_list),
               onPressed: () {
                 _showFilterDialog(context);
               },
@@ -125,7 +153,7 @@ class _MyCustomPageState extends State<MyCustomPage> {
             ),
           ],
         ),
-        body: DailyView(),
+        body: bodyContent, // Verwende den bestimmten Inhalt
         floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
         floatingActionButton: Container(
           margin: const EdgeInsets.only(top: 40),

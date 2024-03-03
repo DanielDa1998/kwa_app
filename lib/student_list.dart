@@ -13,15 +13,15 @@ class _StudentSelectionPageState extends State<StudentSelectionPage> {
     'Ben',
     'Clara',
     'David',
-    "Daniel ",
+    "Daniel",
     "Dirk",
   ]; // Dummy-Liste
 
-  // Hilfsfunktion zum Gruppieren der Schüler nach dem Anfangsbuchstaben
+  // Zustand für ausgewählte Schüler
+  List<String> selectedStudents = [];
+
   LinkedHashMap<String, List<String>> groupByFirstLetter(List<String> list) {
-    // Sortiere die Liste zuerst
     list.sort((a, b) => a.compareTo(b));
-    // Gruppiere die sortierte Liste
     LinkedHashMap<String, List<String>> map = LinkedHashMap();
     for (var s in list) {
       final String letter = s[0].toUpperCase();
@@ -30,15 +30,32 @@ class _StudentSelectionPageState extends State<StudentSelectionPage> {
     return map;
   }
 
+  void toggleStudentSelection(String student) {
+    setState(() {
+      if (selectedStudents.contains(student)) {
+        selectedStudents.remove(student);
+      } else {
+        selectedStudents.add(student);
+      }
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
-    // Gruppierte Liste erstellen
     LinkedHashMap<String, List<String>> groupedStudentList =
         groupByFirstLetter(studentList);
 
     return Scaffold(
       appBar: AppBar(
         title: Text('Schüler auswählen'),
+        actions: [
+          IconButton(
+            icon: Icon(Icons.check),
+            onPressed: () {
+              Navigator.pop(context, selectedStudents);
+            },
+          )
+        ],
       ),
       body: ListView.builder(
         itemCount: groupedStudentList.keys.length,
@@ -53,32 +70,31 @@ class _StudentSelectionPageState extends State<StudentSelectionPage> {
                     const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
                 child: Text(
                   key,
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white),
                 ),
               ),
               ...students.map<Widget>((student) {
                 return Column(
                   children: [
                     Container(
-                      alignment:
-                          Alignment.centerLeft, // Text linksbündig ausrichten
-                      margin: EdgeInsets.symmetric(
-                          horizontal: 16.0,
-                          vertical: 2.0), // Rand zum Bildschirm
                       decoration: BoxDecoration(
-                        color: Color.fromARGB(
-                            255, 0, 0, 0), // Schwarzer Hintergrund
-                        borderRadius:
-                            BorderRadius.circular(8), // Abgerundete Ecken
+                        color: Color.fromARGB(255, 0, 0, 0),
+                        borderRadius: BorderRadius.circular(8),
                       ),
+                      margin:
+                          EdgeInsets.symmetric(horizontal: 16.0, vertical: 2.0),
                       child: ListTile(
                         title: Text(
                           student,
-                          style: TextStyle(
-                              color: Colors.white, fontSize: 16), // Weißer Text
+                          style: TextStyle(color: Colors.white, fontSize: 16),
                         ),
-                        onTap: () => Navigator.pop(context,
-                            student), // Schülername als Ergebnis zurückgeben
+                        trailing: selectedStudents.contains(student)
+                            ? Icon(Icons.check_circle, color: Colors.blue)
+                            : null,
+                        onTap: () => toggleStudentSelection(student),
                       ),
                     ),
                     if (student != students.last)
