@@ -1,9 +1,11 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/date_symbol_data_local.dart';
+import 'package:kwa_app/all_students.dart';
 import 'package:kwa_app/nav_bar.dart';
 import 'package:kwa_app/nav_model.dart';
 import 'package:kwa_app/new_lesson.dart';
+import 'package:kwa_app/settings.dart';
 import 'package:kwa_app/view.dart';
 import 'firebase_options.dart';
 
@@ -101,12 +103,31 @@ class _MyCustomPageState extends State<MyCustomPage> {
     Widget bodyContent;
     switch (selectedTab) {
       case 0:
-        bodyContent = DailyView(); // Der originale Inhalt für das erste Icon
+        bodyContent = Scaffold(
+          appBar: AppBar(
+            title: const Text('Übersicht'),
+            actions: <Widget>[
+              IconButton(
+                icon: const Icon(Icons.filter_list),
+                onPressed: () {
+                  _showFilterDialog(context);
+                },
+              ),
+              const Padding(
+                padding: EdgeInsets.all(8.0),
+                child: CircleAvatar(
+                  backgroundColor: Color(0xFF3A31D8),
+                  child: Text('D', style: TextStyle(color: Colors.white)),
+                ),
+              ),
+            ],
+          ),
+          body: DailyView(),
+        ); // Der originale Inhalt für das erste Icon
         break;
       case 1:
         bodyContent = Scaffold(
-          appBar: AppBar(title: Text('Alle Schüler')),
-          body: Center(child: Text('Inhalte für Alle Schüler')),
+          body: AlleSchuelerView(),
         );
         break;
       case 2:
@@ -117,8 +138,7 @@ class _MyCustomPageState extends State<MyCustomPage> {
         break;
       case 3:
         bodyContent = Scaffold(
-          appBar: AppBar(title: Text('Einstellungen')),
-          body: Center(child: Text('Inhalte für Einstellungen')),
+          body: EinstellungenPage(),
         );
         break;
       default:
@@ -135,24 +155,6 @@ class _MyCustomPageState extends State<MyCustomPage> {
         }
       },
       child: Scaffold(
-        appBar: AppBar(
-          title: const Text('RAIJU'),
-          actions: <Widget>[
-            IconButton(
-              icon: const Icon(Icons.filter_list),
-              onPressed: () {
-                _showFilterDialog(context);
-              },
-            ),
-            const Padding(
-              padding: EdgeInsets.all(8.0),
-              child: CircleAvatar(
-                backgroundColor: Color(0xFF3A31D8),
-                child: Text('D', style: TextStyle(color: Colors.white)),
-              ),
-            ),
-          ],
-        ),
         body: bodyContent, // Verwende den bestimmten Inhalt
         floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
         floatingActionButton: Container(

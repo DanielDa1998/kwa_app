@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:intl/intl.dart';
 import 'package:kwa_app/new_lesson.dart';
+import 'package:kwa_app/student_change.dart';
 import 'package:kwa_app/student_list.dart'; // Überprüfe den Pfad
+import 'package:kwa_app/subject_chang.dart';
 import 'package:kwa_app/subject_list.dart'; // Überprüfe den Pfad
 import 'package:cloud_firestore/cloud_firestore.dart';
 
@@ -33,8 +35,36 @@ class _EditLessonPageState extends State<EditLessonPage> {
         List<String>.from((widget.lesson.data() as Map)['students'] ?? []);
     ausgewaehltesFach = (widget.lesson.data() as Map)['subject'];
     stundensatzController.text =
-        (widget.lesson.data() as Map)['pay'].toString();
+        (widget.lesson.data() as Map)['pay'].toString() + "€";
     // Initialisiere hier die anderen Werte wie Startzeit, Endzeit, Fach, etc.
+  }
+
+  // Methode zum Öffnen der StudentSelectionPage und Empfangen der ausgewählten Schüler
+  void _selectStudents() async {
+    final selectedStudents = await Navigator.push<List<String>>(
+      context,
+      MaterialPageRoute(builder: (context) => CustomStudentSelectionPage()),
+    );
+
+    if (selectedStudents != null) {
+      setState(() {
+        ausgewaehlteSchueler = selectedStudents;
+      });
+    }
+  }
+
+// Methode zum Öffnen der SubjectSelectionPage und Empfangen des ausgewählten Fachs
+  void _selectSubject() async {
+    final selectedSubject = await Navigator.push<String>(
+      context,
+      MaterialPageRoute(builder: (context) => CustomSubjectSelectionPage()),
+    );
+
+    if (selectedSubject != null) {
+      setState(() {
+        ausgewaehltesFach = selectedSubject;
+      });
+    }
   }
 
   void loadStudentNames() async {
@@ -52,11 +82,29 @@ class _EditLessonPageState extends State<EditLessonPage> {
   }
 
   void _waehleSchueler(BuildContext context) async {
-    // Implementiere die Auswahl der Schüler wie in NewLesson
+    final List<String>? selectedStudents = await Navigator.push<List<String>>(
+      context,
+      MaterialPageRoute(builder: (context) => CustomStudentSelectionPage()),
+    );
+
+    if (selectedStudents != null) {
+      setState(() {
+        ausgewaehlteSchueler = selectedStudents;
+      });
+    }
   }
 
   void _waehleFach(BuildContext context) async {
-    // Implementiere die Auswahl des Fachs wie in NewLesson
+    final selectedSubject = await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => CustomSubjectSelectionPage()),
+    );
+
+    if (selectedSubject != null) {
+      setState(() {
+        ausgewaehltesFach = selectedSubject;
+      });
+    }
   }
 
   void _showDateTimePickerStart(BuildContext context) {
