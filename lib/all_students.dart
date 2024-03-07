@@ -1,5 +1,7 @@
-import 'package:flutter/material.dart';
 import 'dart:collection';
+
+import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class AlleSchuelerView extends StatefulWidget {
   @override
@@ -7,66 +9,118 @@ class AlleSchuelerView extends StatefulWidget {
 }
 
 class _AlleSchuelerViewState extends State<AlleSchuelerView> {
-  List<String> studentList = [
-    'Anna', 'Ben', 'Clara', 'David', "Daniel", "Dirk",
-    // Füge hier weitere Schülernamen hinzu
-  ];
-
-  LinkedHashMap<String, List<String>> groupByFirstLetter(List<String> list) {
-    list.sort((a, b) => a.compareTo(b));
-    LinkedHashMap<String, List<String>> map = LinkedHashMap();
-    for (var s in list) {
-      final String letter = s[0].toUpperCase();
-      map.putIfAbsent(letter, () => []).add(s);
-    }
-    return map;
+  void showStudentInfo(Map<String, dynamic> studentData) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          backgroundColor: Colors.black, // Schwarzer Hintergrund
+          title:
+              Text(studentData['name'], style: TextStyle(color: Colors.white)),
+          content: SingleChildScrollView(
+            child: ListBody(
+              children: <Widget>[
+                Text('Schule: ${studentData['school']}',
+                    style: TextStyle(color: Colors.white)),
+                Text('Klasse: ${studentData['class']}',
+                    style: TextStyle(color: Colors.white)),
+                Text('Telefon: ${studentData['tel']}',
+                    style: TextStyle(color: Colors.white)),
+              ],
+            ),
+          ),
+          actions: <Widget>[
+            TextButton(
+              child: Text('Schließen', style: TextStyle(color: Colors.blue)),
+              onPressed: () => Navigator.of(context).pop(),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    LinkedHashMap<String, List<String>> groupedStudentList =
-        groupByFirstLetter(studentList);
-
     return Scaffold(
       appBar: AppBar(
         title: Text('Alle Schüler'),
       ),
-      body: ListView.builder(
-        itemCount: groupedStudentList.keys.length,
-        itemBuilder: (context, index) {
-          String key = groupedStudentList.keys.elementAt(index);
-          List<String> students = groupedStudentList[key]!;
-          return Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Padding(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-                child: Text(
-                  key,
-                  style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white),
-                ),
-              ),
-              ...students.map((student) {
-                return Container(
-                  decoration: BoxDecoration(
-                    color: Color.fromARGB(255, 0, 0, 0),
-                    borderRadius: BorderRadius.circular(8),
+      body: StreamBuilder<QuerySnapshot>(
+        stream: FirebaseFirestore.instance.collection('students').snapshots(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return Center(child: CircularProgressIndicator());
+          }
+          if (snapshot.hasError || !snapshot.hasData) {
+            return Center(child: Text('Fehler beim Laden der Daten'));
+          }
+          // Sortiere die Schüler nach Name
+          List<QueryDocumentSnapshot> studentDocs = snapshot.data!.docs;
+          studentDocs.sort((a, b) => a['name'].compareTo(b['name']));
+
+          // Gruppiere die Schüler nach dem ersten Buchstaben des Namens
+          var groupedStudents = groupByFirstLetter(studentDocs);
+
+          return ListView.builder(
+            itemCount: groupedStudents.keys.length,
+            itemBuilder: (context, index) {
+              String key = groupedStudents.keys.elementAt(index);
+              List<QueryDocumentSnapshot> students = groupedStudents[key]!;
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 16.0, vertical: 8.0),
+                    child: Text(
+                      key,
+                      style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white),
+                    ),
                   ),
-                  margin: EdgeInsets.symmetric(horizontal: 16.0, vertical: 2.0),
-                  child: ListTile(
-                    title: Text(student,
-                        style: TextStyle(color: Colors.white, fontSize: 16)),
-                  ),
-                );
-              }).toList(),
-            ],
+                  ...students.map((student) {
+                    return Container(
+                      decoration: BoxDecoration(
+                        color:
+                            Colors.black, // Schwarzer Hintergrund für die Liste
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      margin:
+                          EdgeInsets.symmetric(horizontal: 16.0, vertical: 2.0),
+                      child: ListTile(
+                        title: Text(student['name'],
+                            style:
+                                TextStyle(color: Colors.white, fontSize: 16)),
+                        onTap: () {
+                          Map<String, dynamic> studentData =
+                              student.data() as Map<String, dynamic>;
+                          showStudentInfo(studentData);
+                        },
+                      ),
+                    );
+                  }).toList(),
+                ],
+              );
+            },
           );
         },
       ),
     );
+  }
+
+  LinkedHashMap<String, List<QueryDocumentSnapshot>> groupByFirstLetter(
+      List<QueryDocumentSnapshot> list) {
+    LinkedHashMap<String, List<QueryDocumentSnapshot>> map = LinkedHashMap();
+    for (var doc in list) {
+      String letter = doc['name'][0].toUpperCase();
+      if (!map.containsKey(letter)) {
+        map[letter] = [];
+      }
+      map[letter]!.add(doc);
+    }
+    return map;
   }
 }

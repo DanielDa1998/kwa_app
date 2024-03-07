@@ -6,6 +6,7 @@ import 'package:kwa_app/nav_bar.dart';
 import 'package:kwa_app/nav_model.dart';
 import 'package:kwa_app/new_lesson.dart';
 import 'package:kwa_app/settings.dart';
+import 'package:kwa_app/start.dart';
 import 'package:kwa_app/view.dart';
 import 'firebase_options.dart';
 
@@ -18,10 +19,8 @@ void main() async {
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
-  initializeDateFormatting().then((_) {
-    runApp(MyApp());
-  });
-  ;
+  await initializeDateFormatting(); // Initialisiere die Datum-Formatierung hier
+  runApp(MyApp());
 }
 
 class MyApp extends StatelessWidget {
@@ -31,14 +30,15 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Flutter Demo',
+      home: LoginPage(),
       theme: ThemeData(
         colorScheme: ColorScheme.fromSwatch().copyWith(
-          primary: const Color(0xFF3A31D8),
-          secondary: const Color(0xFF020024),
-          background: const Color(0xFF0D1414),
+          primary: Color.fromARGB(255, 0, 0, 0),
+          secondary: Color.fromARGB(255, 0, 0, 0),
+          background: Color.fromARGB(255, 0, 0, 0),
           onPrimary: Colors.white,
           onSecondary: Colors.white,
-          surface: const Color(0xFF0D1414),
+          surface: Color.fromARGB(255, 0, 0, 0),
         ),
         textTheme: const TextTheme(
           bodyText2: TextStyle(color: Colors.white),
@@ -53,7 +53,6 @@ class MyApp extends StatelessWidget {
         scaffoldBackgroundColor: Color(0xFF0D1414),
         useMaterial3: true,
       ),
-      home: const MyCustomPage(),
       debugShowCheckedModeBanner: false,
     );
   }
@@ -113,11 +112,35 @@ class _MyCustomPageState extends State<MyCustomPage> {
                   _showFilterDialog(context);
                 },
               ),
-              const Padding(
-                padding: EdgeInsets.all(8.0),
-                child: CircleAvatar(
-                  backgroundColor: Color(0xFF3A31D8),
-                  child: Text('D', style: TextStyle(color: Colors.white)),
+              PopupMenuButton<String>(
+                onSelected: (value) {
+                  if (value == 'logout') {
+                    Navigator.of(context).pushReplacement(
+                      MaterialPageRoute(
+                          builder: (context) =>
+                              LoginPage()), // Stelle sicher, dass LoginPage importiert wird
+                    );
+                  }
+                },
+                itemBuilder: (BuildContext context) {
+                  return [
+                    PopupMenuItem<String>(
+                      value: 'logout',
+                      child: Text(
+                        'Abmelden',
+                        style: TextStyle(
+                            color: Colors
+                                .white), // Helle Textfarbe für bessere Sichtbarkeit
+                      ),
+                    ),
+                  ];
+                },
+                child: const Padding(
+                  padding: EdgeInsets.all(8.0),
+                  child: CircleAvatar(
+                    backgroundColor: Color(0xFF3A31D8),
+                    child: Text('D', style: TextStyle(color: Colors.white)),
+                  ),
                 ),
               ),
             ],
