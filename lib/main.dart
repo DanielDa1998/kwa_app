@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/date_symbol_data_local.dart';
@@ -9,6 +10,7 @@ import 'package:kwa_app/settings.dart';
 import 'package:kwa_app/start.dart';
 import 'package:kwa_app/view.dart';
 import 'firebase_options.dart';
+import 'global.dart';
 
 // Aktuelles Datum und Uhrzeit für Referenz
 DateTime now = DateTime.now();
@@ -73,9 +75,28 @@ class _MyCustomPageState extends State<MyCustomPage> {
   int selectedTab = 0;
   List<NavModel> items = [];
 
+  String teacherInitials = "D";
+
+  void fetchTeacherName() async {
+    // Nutze loggedInTeacherId aus deiner global.dart
+    final doc = await FirebaseFirestore.instance
+        .collection('teachers')
+        .doc(loggedInTeacherId)
+        .get();
+    if (doc.exists) {
+      setState(() {
+        // Extrahiere die Initialen aus dem Namen
+        String name = doc.data()!['name'];
+        List<String> names = name.split(" ");
+        teacherInitials = names.map((e) => e.isNotEmpty ? e[0] : '').join();
+      });
+    }
+  }
+
   @override
   void initState() {
     super.initState();
+    fetchTeacherName();
     items = [
       NavModel(
         page: const TabPage(tab: 1),
@@ -135,17 +156,21 @@ class _MyCustomPageState extends State<MyCustomPage> {
                     ),
                   ];
                 },
-                child: const Padding(
+                child: Padding(
                   padding: EdgeInsets.all(8.0),
+                  // Entferne const vor CircleAvatar
                   child: CircleAvatar(
                     backgroundColor: Color(0xFF3A31D8),
-                    child: Text('D', style: TextStyle(color: Colors.white)),
+                    child: Text(teacherInitials,
+                        style: TextStyle(
+                            color: Colors
+                                .white)), // Entferne const hier ebenfalls, falls vorhanden
                   ),
                 ),
               ),
             ],
           ),
-          body: DailyView(),
+          body: DailyView(teacherId: loggedInTeacherId),
         ); // Der originale Inhalt für das erste Icon
         break;
       case 1:
@@ -165,7 +190,9 @@ class _MyCustomPageState extends State<MyCustomPage> {
         );
         break;
       default:
-        bodyContent = DailyView(); // Fallback, sollte nie erreicht werden
+        bodyContent = DailyView(
+            teacherId:
+                loggedInTeacherId); // Fallback, sollte nie erreicht werden
     }
 
     return WillPopScope(

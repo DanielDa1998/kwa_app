@@ -4,10 +4,19 @@ import 'package:intl/intl.dart';
 import 'package:kwa_app/lesson_editor.dart';
 
 class DailyView extends StatelessWidget {
+  final String teacherId;
+
+  DailyView({required this.teacherId});
   @override
   Widget build(BuildContext context) {
     return StreamBuilder<QuerySnapshot>(
-      stream: FirebaseFirestore.instance.collection("lesson").snapshots(),
+      stream: FirebaseFirestore.instance
+          .collection("lesson")
+          .where('teacher',
+              isEqualTo: FirebaseFirestore.instance
+                  .collection('teachers')
+                  .doc(teacherId))
+          .snapshots(),
       builder: (context, lessonSnapshot) {
         if (lessonSnapshot.connectionState == ConnectionState.waiting) {
           return Center(child: CircularProgressIndicator());
