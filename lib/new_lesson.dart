@@ -1,6 +1,8 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:kwa_app/global.dart';
 import 'package:kwa_app/student_list.dart';
 import 'package:kwa_app/subject_list.dart';
 
@@ -90,17 +92,11 @@ class CustomTextField extends StatelessWidget {
               style: TextStyle(color: Colors.blue, fontSize: 16),
               decoration: InputDecoration(
                 border: InputBorder.none,
-                hintText: "0€",
+                hintText: "0", // Entfernt das Eurozeichen
                 hintStyle: TextStyle(color: Colors.blue, fontSize: 16),
                 contentPadding: EdgeInsets.symmetric(horizontal: 20.0),
               ),
-              keyboardType: TextInputType.number,
-              onFieldSubmitted: (value) {
-                // Fügt das "€"-Zeichen hinzu, wenn das Feld übermittelt wird
-                if (value.isNotEmpty && !value.endsWith('€')) {
-                  controller.text = "$value€";
-                }
-              },
+              keyboardType: TextInputType.numberWithOptions(decimal: true),
             ),
           ),
         ],
@@ -128,14 +124,14 @@ class _NewLessonState extends State<NewLesson> {
     selectedEndTime = DateTime.now();
   }
 
-  final List<String> schuelerListe = ['Anna', 'Ben', 'Clara', 'David'];
-  final List<String> faecherListe = [
-    'Mathematik',
-    'Englisch',
-    'Biologie',
-    'Geschichte'
-  ];
   final TextEditingController stundensatzController = TextEditingController();
+
+  Widget buildStundensatzField(BuildContext context) {
+    return CustomTextField(
+      controller: stundensatzController,
+      label: "Stundensatz",
+    );
+  }
 
   // Anpassung hier: Liste von Strings statt einem einzelnen String
   List<String> ausgewaehlteSchueler = [];
@@ -264,6 +260,64 @@ class _NewLessonState extends State<NewLesson> {
     return getFormattedDateTime(selectedEndTime);
   }
 
+  void _saveLesson() async {
+    final String payRateString = stundensatzController.text.trim();
+    final double? payRate = double.tryParse(payRateString);
+
+    if (selectedStartTime != null &&
+        selectedEndTime != null &&
+        ausgewaehltesFach != null &&
+        ausgewaehlteSchueler.isNotEmpty &&
+        payRate != null) {
+      // Suche die Schülerreferenz basierend auf dem Schülernamen
+      DocumentReference studentRef;
+      try {
+        QuerySnapshot studentsQuery = await FirebaseFirestore.instance
+            .collection('students')
+            .where('name', isEqualTo: ausgewaehlteSchueler.first)
+            .get();
+
+        if (studentsQuery.docs.isNotEmpty) {
+          studentRef = studentsQuery.docs.first.reference;
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+              content: Text('Schüler wurde nicht in der Datenbank gefunden.')));
+          return;
+        }
+      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text('Fehler beim Abrufen der Schülerinformationen: $e')));
+        return;
+      }
+
+      // Erstelle das Lesson-Objekt
+      final lesson = {
+        'date_start': selectedStartTime,
+        'date_end': selectedEndTime,
+        'subject': ausgewaehltesFach,
+        'student': studentRef, // Die Schülerreferenz wird hier gesetzt
+        'pay': payRate,
+        'teacher': FirebaseFirestore.instance
+            .collection('teachers')
+            .doc(loggedInTeacherId),
+      };
+
+      // Speichere die neue Lesson in der Firestore-Datenbank
+      try {
+        await FirebaseFirestore.instance.collection('lesson').add(lesson);
+        ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Unterrichtsstunde gespeichert.')));
+        Navigator.of(context).pop();
+      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text('Fehler beim Speichern der Unterrichtsstunde: $e')));
+      }
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Bitte alle Felder ausfüllen.')));
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -284,7 +338,7 @@ class _NewLessonState extends State<NewLesson> {
           IconButton(
             icon: Icon(Icons.check, color: Colors.white),
             onPressed: () {
-              // Logik für "Sichern"
+              _saveLesson();
             },
           ),
         ],
@@ -383,13 +437,4 @@ class _NewLessonState extends State<NewLesson> {
       ),
     );
   }
-}
-
-final TextEditingController stundensatzController = TextEditingController();
-
-Widget buildStundensatzField(BuildContext context) {
-  return CustomTextField(
-    controller: stundensatzController,
-    label: "Stundensatz",
-  );
 }
