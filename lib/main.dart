@@ -77,26 +77,9 @@ class _MyCustomPageState extends State<MyCustomPage> {
 
   String teacherInitials = "D";
 
-  void fetchTeacherName() async {
-    // Nutze loggedInTeacherId aus deiner global.dart
-    final doc = await FirebaseFirestore.instance
-        .collection('teachers')
-        .doc(loggedInTeacherId)
-        .get();
-    if (doc.exists) {
-      setState(() {
-        // Extrahiere die Initialen aus dem Namen
-        String name = doc.data()!['name'];
-        List<String> names = name.split(" ");
-        teacherInitials = names.map((e) => e.isNotEmpty ? e[0] : '').join();
-      });
-    }
-  }
-
   @override
   void initState() {
     super.initState();
-    fetchTeacherName();
     items = [
       NavModel(
         page: const TabPage(tab: 1),
@@ -124,52 +107,6 @@ class _MyCustomPageState extends State<MyCustomPage> {
     switch (selectedTab) {
       case 0:
         bodyContent = Scaffold(
-          appBar: AppBar(
-            title: const Text('Übersicht'),
-            actions: <Widget>[
-              IconButton(
-                icon: const Icon(Icons.filter_list),
-                onPressed: () {
-                  _showFilterDialog(context);
-                },
-              ),
-              PopupMenuButton<String>(
-                onSelected: (value) {
-                  if (value == 'logout') {
-                    Navigator.of(context).pushReplacement(
-                      MaterialPageRoute(
-                          builder: (context) =>
-                              LoginPage()), // Stelle sicher, dass LoginPage importiert wird
-                    );
-                  }
-                },
-                itemBuilder: (BuildContext context) {
-                  return [
-                    PopupMenuItem<String>(
-                      value: 'logout',
-                      child: Text(
-                        'Abmelden',
-                        style: TextStyle(
-                            color: Colors
-                                .white), // Helle Textfarbe für bessere Sichtbarkeit
-                      ),
-                    ),
-                  ];
-                },
-                child: Padding(
-                  padding: EdgeInsets.all(8.0),
-                  // Entferne const vor CircleAvatar
-                  child: CircleAvatar(
-                    backgroundColor: Color(0xFF3A31D8),
-                    child: Text(teacherInitials,
-                        style: TextStyle(
-                            color: Colors
-                                .white)), // Entferne const hier ebenfalls, falls vorhanden
-                  ),
-                ),
-              ),
-            ],
-          ),
           body: DailyView(teacherId: loggedInTeacherId),
         ); // Der originale Inhalt für das erste Icon
         break;
@@ -248,124 +185,6 @@ class _MyCustomPageState extends State<MyCustomPage> {
       ),
     );
   }
-}
-
-void _showFilterDialog(BuildContext context) {
-  showDialog(
-    context: context,
-    builder: (context) {
-      // Initialisiere die Variablen für die Filterkriterien
-      DateTime? fromDate;
-      DateTime? toDate;
-      String? schuelerName;
-      String? fach;
-
-      return AlertDialog(
-        title: Text('Filter',
-            style: TextStyle(color: Colors.white)), // Titeltext weiß
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: <Widget>[
-              // Textfeld für den Namen des Schülers
-              TextFormField(
-                decoration: InputDecoration(
-                  labelText: 'Name des Schülers',
-                  labelStyle: TextStyle(color: Colors.white), // Labeltext weiß
-                  icon: Icon(Icons.person, color: Colors.white), // Icon weiß
-                ),
-                style: TextStyle(color: Colors.white), // Eingabetext weiß
-                onChanged: (value) {
-                  schuelerName = value;
-                },
-              ),
-              // Textfeld für das Fach
-              TextFormField(
-                decoration: InputDecoration(
-                  labelText: 'Fach',
-                  labelStyle: TextStyle(color: Colors.white), // Labeltext weiß
-                  icon: Icon(Icons.book, color: Colors.white), // Icon weiß
-                ),
-                style: TextStyle(color: Colors.white), // Eingabetext weiß
-                onChanged: (value) {
-                  fach = value;
-                },
-              ),
-              // Datum von
-              ListTile(
-                title: Text(
-                    "Von: ${fromDate != null ? fromDate.toString() : 'Nicht gesetzt'}",
-                    style: TextStyle(color: Colors.white) // Text weiß
-                    ),
-                trailing: Icon(Icons.calendar_today,
-                    color: Colors.white), // Icon weiß
-                onTap: () async {
-                  DateTime? picked = await showDatePicker(
-                    context: context,
-                    initialDate: DateTime.now(),
-                    firstDate: DateTime(2000),
-                    lastDate: DateTime(2025),
-                    builder: (BuildContext context, Widget? child) {
-                      return Theme(
-                        data: ThemeData.dark(), // Dunkles Thema für DatePicker
-                        child: child!,
-                      );
-                    },
-                  );
-                  if (picked != null && picked != fromDate) {
-                    fromDate = picked;
-                  }
-                },
-              ),
-              // Datum bis
-              ListTile(
-                title: Text(
-                    "Bis: ${toDate != null ? toDate.toString() : 'Nicht gesetzt'}",
-                    style: TextStyle(color: Colors.white) // Text weiß
-                    ),
-                trailing: Icon(Icons.calendar_today,
-                    color: Colors.white), // Icon weiß
-                onTap: () async {
-                  DateTime? picked = await showDatePicker(
-                    context: context,
-                    initialDate: DateTime.now(),
-                    firstDate: DateTime(2000),
-                    lastDate: DateTime(2025),
-                    builder: (BuildContext context, Widget? child) {
-                      return Theme(
-                        data: ThemeData.dark(), // Dunkles Thema für DatePicker
-                        child: child!,
-                      );
-                    },
-                  );
-                  if (picked != null && picked != toDate) {
-                    toDate = picked;
-                  }
-                },
-              ),
-            ],
-          ),
-        ),
-        actions: <Widget>[
-          TextButton(
-            child: Text('Abbrechen',
-                style: TextStyle(color: Colors.white)), // Text weiß
-            onPressed: () {
-              Navigator.of(context).pop();
-            },
-          ),
-          TextButton(
-            child: Text('Filtern',
-                style: TextStyle(color: Colors.white)), // Text weiß
-            onPressed: () {
-              // Hier würdest du die Filterlogik implementieren
-              Navigator.of(context).pop();
-            },
-          ),
-        ],
-      );
-    },
-  );
 }
 
 class TabPage extends StatelessWidget {

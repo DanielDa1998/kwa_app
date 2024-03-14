@@ -262,21 +262,37 @@ class _NewLessonState extends State<NewLesson> {
 
   void _saveLesson() async {
     final String payRateString = stundensatzController.text.trim();
-    final double? payRate = double.tryParse(payRateString);
+    final double? hourlyPay =
+        double.tryParse(payRateString); // Stundensatz als double
 
     if (selectedStartTime != null &&
         selectedEndTime != null &&
         ausgewaehltesFach != null &&
         ausgewaehlteSchueler.isNotEmpty &&
-        payRate != null) {
-      // Suche die Schülerreferenz basierend auf dem Schülernamen
+        hourlyPay != null) {
+      final DateTime start = DateTime(
+          selectedStartTime!.year,
+          selectedStartTime!.month,
+          selectedStartTime!.day,
+          selectedStartTime!.hour,
+          selectedStartTime!.minute);
+      final DateTime end = DateTime(
+          selectedEndTime!.year,
+          selectedEndTime!.month,
+          selectedEndTime!.day,
+          selectedEndTime!.hour,
+          selectedEndTime!.minute);
+      final int durationInMinutes = end.difference(start).inMinutes;
+      double durationInHours = durationInMinutes / 60.0;
+      double totalPay = durationInHours *
+          hourlyPay; // Gesamtbetrag basierend auf Stundenanzahl und Stundensatz
+
       DocumentReference studentRef;
       try {
         QuerySnapshot studentsQuery = await FirebaseFirestore.instance
             .collection('students')
             .where('name', isEqualTo: ausgewaehlteSchueler.first)
             .get();
-
         if (studentsQuery.docs.isNotEmpty) {
           studentRef = studentsQuery.docs.first.reference;
         } else {
@@ -290,19 +306,18 @@ class _NewLessonState extends State<NewLesson> {
         return;
       }
 
-      // Erstelle das Lesson-Objekt
       final lesson = {
-        'date_start': selectedStartTime,
-        'date_end': selectedEndTime,
+        'date_start': start,
+        'date_end': end,
         'subject': ausgewaehltesFach,
-        'student': studentRef, // Die Schülerreferenz wird hier gesetzt
-        'pay': payRate,
+        'student': studentRef,
+        'pay': totalPay, // Gesamtbetrag der Unterrichtsstunde
+        'hourly_pay': hourlyPay, // Stundensatz pro Stunde
         'teacher': FirebaseFirestore.instance
             .collection('teachers')
             .doc(loggedInTeacherId),
       };
 
-      // Speichere die neue Lesson in der Firestore-Datenbank
       try {
         await FirebaseFirestore.instance.collection('lesson').add(lesson);
         ScaffoldMessenger.of(context).showSnackBar(

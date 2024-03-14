@@ -30,13 +30,28 @@ class _EditLessonPageState extends State<EditLessonPage> {
     loadStudentNames();
     selectedStartTime = (widget.lesson.data() as Map)['date_start'].toDate();
     selectedEndTime = (widget.lesson.data() as Map)['date_end'].toDate();
-    // Annahme: 'students' ist eine Liste von Schülernamen oder IDs
     ausgewaehlteSchueler =
         List<String>.from((widget.lesson.data() as Map)['students'] ?? []);
     ausgewaehltesFach = (widget.lesson.data() as Map)['subject'];
-    stundensatzController.text =
-        (widget.lesson.data() as Map)['pay'].toString() + "€";
-    // Initialisiere hier die anderen Werte wie Startzeit, Endzeit, Fach, etc.
+// Konvertiere das Objekt explizit in eine Map, bevor du darauf zugreifst.
+    Map<String, dynamic> lessonData =
+        widget.lesson.data() as Map<String, dynamic>;
+
+// Jetzt kannst du sicher auf 'hourly_pay' zugreifen.
+    dynamic hourlyPayDynamic = lessonData['hourly_pay'];
+    double hourlyPay = 0.0;
+
+// Überprüfen, ob hourlyPayDynamic null ist, um NullPointer Exception zu vermeiden.
+    if (hourlyPayDynamic != null) {
+      // Konvertierung von dynamic zu double, falls es nicht bereits ein double ist.
+      // Nutze hier eine bedingte Typüberprüfung, um bei Bedarf eine Konvertierung durchzuführen.
+      hourlyPay = hourlyPayDynamic is double
+          ? hourlyPayDynamic
+          : double.parse(hourlyPayDynamic.toString());
+    }
+
+// Verwenden von hourlyPay für den TextEditingController
+    stundensatzController.text = hourlyPay.toStringAsFixed(2) + "€";
   }
 
   // Methode zum Öffnen der StudentSelectionPage und Empfangen der ausgewählten Schüler
@@ -50,6 +65,85 @@ class _EditLessonPageState extends State<EditLessonPage> {
       setState(() {
         ausgewaehlteSchueler = selectedStudents;
       });
+    }
+  }
+
+  void _updateLesson() async {
+    // Stundensatz ohne "€"-Zeichen parsen
+    final String hourlyPayString =
+        stundensatzController.text.replaceAll("€", "").trim();
+    final double? hourlyPay = double.tryParse(hourlyPayString);
+
+    // Datum und Zeit ohne Sekunden
+    final DateTime startDateTime = DateTime(
+        selectedStartTime!.year,
+        selectedStartTime!.month,
+        selectedStartTime!.day,
+        selectedStartTime!.hour,
+        selectedStartTime!.minute);
+    final DateTime endDateTime = DateTime(
+        selectedEndTime!.year,
+        selectedEndTime!.month,
+        selectedEndTime!.day,
+        selectedEndTime!.hour,
+        selectedEndTime!.minute);
+
+    // Berechnung der Gesamtdauer in Stunden
+    final double durationInHours =
+        endDateTime.difference(startDateTime).inMinutes / 60.0;
+
+    // Neuberechnung von 'pay' basierend auf 'hourly_pay' und der Gesamtdauer
+    final double totalPay = durationInHours * (hourlyPay ?? 0);
+
+    DocumentReference? studentRef;
+
+    if (ausgewaehlteSchueler.isNotEmpty) {
+      // Annahme: Die ausgewählten Schüler sind bereits als DocumentReferences gespeichert
+      try {
+        final QuerySnapshot studentQuery = await FirebaseFirestore.instance
+            .collection('students')
+            .where('name', isEqualTo: ausgewaehlteSchueler.first)
+            .get();
+
+        if (studentQuery.docs.isNotEmpty) {
+          studentRef = studentQuery.docs.first.reference;
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Schüler wurde nicht gefunden.')));
+          return;
+        }
+      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text('Fehler beim Abrufen der Schülerinformationen: $e')));
+        return;
+      }
+    }
+
+    if (startDateTime != null &&
+        endDateTime != null &&
+        ausgewaehltesFach != null &&
+        hourlyPay != null &&
+        studentRef != null) {
+      try {
+        await FirebaseFirestore.instance
+            .collection('lesson')
+            .doc(widget.lesson.id)
+            .update({
+          'date_start': startDateTime,
+          'date_end': endDateTime,
+          'subject': ausgewaehltesFach,
+          'student': studentRef,
+          'hourly_pay': hourlyPay,
+          'pay': totalPay,
+        });
+        Navigator.of(context).pop(); // Zurück zur vorherigen Seite gehen
+      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text('Fehler beim Aktualisieren der Lesson: $e')));
+      }
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Bitte füllen Sie alle Felder aus')));
     }
   }
 
@@ -207,9 +301,7 @@ class _EditLessonPageState extends State<EditLessonPage> {
         actions: [
           IconButton(
             icon: Icon(Icons.check, color: Colors.white),
-            onPressed: () {
-              // Implementiere die Logik zum Speichern der bearbeiteten Lektion
-            },
+            onPressed: _updateLesson,
           ),
         ],
       ),
