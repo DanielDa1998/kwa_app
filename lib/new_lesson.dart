@@ -262,74 +262,67 @@ class _NewLessonState extends State<NewLesson> {
 
   void _saveLesson() async {
     final String payRateString = stundensatzController.text.trim();
-    final double? hourlyPay =
-        double.tryParse(payRateString); // Stundensatz als double
+    final double? hourlyPay = double.tryParse(payRateString);
 
     if (selectedStartTime != null &&
         selectedEndTime != null &&
         ausgewaehltesFach != null &&
-        ausgewaehlteSchueler.isNotEmpty &&
-        hourlyPay != null) {
-      final DateTime start = DateTime(
-          selectedStartTime!.year,
-          selectedStartTime!.month,
-          selectedStartTime!.day,
-          selectedStartTime!.hour,
-          selectedStartTime!.minute);
-      final DateTime end = DateTime(
-          selectedEndTime!.year,
-          selectedEndTime!.month,
-          selectedEndTime!.day,
-          selectedEndTime!.hour,
-          selectedEndTime!.minute);
-      final int durationInMinutes = end.difference(start).inMinutes;
-      double durationInHours = durationInMinutes / 60.0;
-      double totalPay = durationInHours *
-          hourlyPay; // Gesamtbetrag basierend auf Stundenanzahl und Stundensatz
+        hourlyPay != null &&
+        ausgewaehlteSchueler.isNotEmpty) {
+      // Verwende den ersten Schülernamen aus der Liste
+      final String studentName = ausgewaehlteSchueler.first;
+      DocumentReference? studentRef;
 
-      DocumentReference studentRef;
       try {
-        QuerySnapshot studentsQuery = await FirebaseFirestore.instance
+        // Hole die ID des Schülers aus der students-Sammlung
+        QuerySnapshot studentQuery = await FirebaseFirestore.instance
             .collection('students')
-            .where('name', isEqualTo: ausgewaehlteSchueler.first)
+            .where('name', isEqualTo: studentName)
             .get();
-        if (studentsQuery.docs.isNotEmpty) {
-          studentRef = studentsQuery.docs.first.reference;
-        } else {
-          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-              content: Text('Schüler wurde nicht in der Datenbank gefunden.')));
-          return;
+
+        if (studentQuery.docs.isEmpty) {
+          throw Exception(
+              'Schülerdatensatz mit Name $studentName existiert nicht in der Datenbank');
         }
+
+        // Wenn der Schüler gefunden wurde
+        studentRef = studentQuery.docs.first.reference;
+
+        // Berechne den Gesamtbetrag basierend auf der Dauer und dem Stundensatz
+        final int durationInMinutes =
+            selectedEndTime!.difference(selectedStartTime!).inMinutes;
+        final double totalPay = durationInMinutes / 60 * hourlyPay;
+
+        // Erstelle das lesson-Dokument
+        final lessonData = {
+          'date_start': selectedStartTime,
+          'date_end': selectedEndTime,
+          'hourly_pay': hourlyPay,
+          'pay': totalPay,
+          'student': studentRef,
+          'student_name': studentName,
+          'subject': ausgewaehltesFach,
+          'teacher': FirebaseFirestore.instance
+              .collection('teachers')
+              .doc(loggedInTeacherId),
+        };
+
+        // Speichere das neue lesson-Dokument in Firestore
+        await FirebaseFirestore.instance.collection('lesson').add(lessonData);
+
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('Unterrichtsstunde erfolgreich gespeichert.'),
+        ));
+        Navigator.of(context).pop(); // Gehe zurück zur vorherigen Seite
       } catch (e) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-            content: Text('Fehler beim Abrufen der Schülerinformationen: $e')));
-        return;
-      }
-
-      final lesson = {
-        'date_start': start,
-        'date_end': end,
-        'subject': ausgewaehltesFach,
-        'student': studentRef,
-        'pay': totalPay, // Gesamtbetrag der Unterrichtsstunde
-        'hourly_pay': hourlyPay, // Stundensatz pro Stunde
-        'teacher': FirebaseFirestore.instance
-            .collection('teachers')
-            .doc(loggedInTeacherId),
-      };
-
-      try {
-        await FirebaseFirestore.instance.collection('lesson').add(lesson);
-        ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Unterrichtsstunde gespeichert.')));
-        Navigator.of(context).pop();
-      } catch (e) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-            content: Text('Fehler beim Speichern der Unterrichtsstunde: $e')));
+          content: Text('Es gab ein Problem beim Speichern: $e'),
+        ));
       }
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Bitte alle Felder ausfüllen.')));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text('Bitte füllen Sie alle erforderlichen Felder aus.'),
+      ));
     }
   }
 

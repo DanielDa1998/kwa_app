@@ -69,82 +69,59 @@ class _EditLessonPageState extends State<EditLessonPage> {
   }
 
   void _updateLesson() async {
-    // Stundensatz ohne "€"-Zeichen parsen
-    final String hourlyPayString =
+    final String payRateString =
         stundensatzController.text.replaceAll("€", "").trim();
-    final double? hourlyPay = double.tryParse(hourlyPayString);
-
-    // Datum und Zeit ohne Sekunden
-    final DateTime startDateTime = DateTime(
-        selectedStartTime!.year,
-        selectedStartTime!.month,
-        selectedStartTime!.day,
-        selectedStartTime!.hour,
-        selectedStartTime!.minute);
-    final DateTime endDateTime = DateTime(
-        selectedEndTime!.year,
-        selectedEndTime!.month,
-        selectedEndTime!.day,
-        selectedEndTime!.hour,
-        selectedEndTime!.minute);
-
-    // Berechnung der Gesamtdauer in Stunden
+    final double? hourlyPay = double.tryParse(payRateString);
+    final DateTime startDateTime = selectedStartTime!;
+    final DateTime endDateTime = selectedEndTime!;
     final double durationInHours =
         endDateTime.difference(startDateTime).inMinutes / 60.0;
-
-    // Neuberechnung von 'pay' basierend auf 'hourly_pay' und der Gesamtdauer
     final double totalPay = durationInHours * (hourlyPay ?? 0);
 
-    DocumentReference? studentRef;
-
-    if (ausgewaehlteSchueler.isNotEmpty) {
-      // Annahme: Die ausgewählten Schüler sind bereits als DocumentReferences gespeichert
-      try {
-        final QuerySnapshot studentQuery = await FirebaseFirestore.instance
-            .collection('students')
-            .where('name', isEqualTo: ausgewaehlteSchueler.first)
-            .get();
-
-        if (studentQuery.docs.isNotEmpty) {
-          studentRef = studentQuery.docs.first.reference;
-        } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('Schüler wurde nicht gefunden.')));
-          return;
-        }
-      } catch (e) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-            content: Text('Fehler beim Abrufen der Schülerinformationen: $e')));
-        return;
-      }
-    }
-
-    if (startDateTime != null &&
-        endDateTime != null &&
-        ausgewaehltesFach != null &&
-        hourlyPay != null &&
-        studentRef != null) {
-      try {
-        await FirebaseFirestore.instance
-            .collection('lesson')
-            .doc(widget.lesson.id)
-            .update({
-          'date_start': startDateTime,
-          'date_end': endDateTime,
-          'subject': ausgewaehltesFach,
-          'student': studentRef,
-          'hourly_pay': hourlyPay,
-          'pay': totalPay,
-        });
-        Navigator.of(context).pop(); // Zurück zur vorherigen Seite gehen
-      } catch (e) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-            content: Text('Fehler beim Aktualisieren der Lesson: $e')));
-      }
-    } else {
+    if (hourlyPay == null ||
+        ausgewaehlteSchueler.isEmpty ||
+        ausgewaehltesFach == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Bitte füllen Sie alle Felder aus')));
+          SnackBar(content: Text('Bitte füllen Sie alle Felder aus.')));
+      return;
     }
+
+    // Holt den aktuellen Schüler basierend auf dem ausgewählten Namen
+    final QuerySnapshot studentQuery = await FirebaseFirestore.instance
+        .collection('students')
+        .where('name', isEqualTo: ausgewaehlteSchueler.first)
+        .get();
+
+    if (studentQuery.docs.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Schüler wurde nicht gefunden.')));
+      return;
+    }
+
+    // Referenz und Name des ausgewählten Schülers
+    final DocumentReference studentRef = studentQuery.docs.first.reference;
+    final String studentName = studentQuery.docs.first.get('name');
+
+    // Update der lesson
+    await FirebaseFirestore.instance
+        .collection('lesson')
+        .doc(widget.lesson.id)
+        .update({
+      'date_start': startDateTime,
+      'date_end': endDateTime,
+      'subject': ausgewaehltesFach,
+      'student': studentRef,
+      'student_name': studentName, // Aktualisiere den Namen des Schülers
+      'hourly_pay': hourlyPay,
+      'pay': totalPay,
+    }).then((value) {
+      ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Unterrichtsstunde aktualisiert.')));
+      Navigator.of(context).pop();
+    }).catchError((error) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('Fehler beim Aktualisieren der Stunde: $error')));
+    });
   }
 
 // Methode zum Öffnen der SubjectSelectionPage und Empfangen des ausgewählten Fachs
