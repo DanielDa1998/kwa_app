@@ -4,6 +4,8 @@ import 'package:intl/intl.dart';
 import 'package:kwa_app/global.dart';
 import 'package:kwa_app/lesson_editor.dart';
 import 'package:kwa_app/start.dart';
+import 'package:kwa_app/student_list.dart';
+import 'package:kwa_app/subject_list.dart';
 
 class DailyView extends StatefulWidget {
   final String teacherId;
@@ -16,10 +18,8 @@ class DailyView extends StatefulWidget {
 
 class _DailyViewState extends State<DailyView> {
   String teacherInitials = "D";
-  DateTime? _fromDate;
-  DateTime? _toDate;
-  String? _schuelerName;
-  String? _fach;
+  List<String> selectedStudents = [];
+  String selectedSubject = '';
 
   Stream<QuerySnapshot> _createFilteredQuery() {
     Query query = FirebaseFirestore.instance.collection("lesson").where(
@@ -28,22 +28,15 @@ class _DailyViewState extends State<DailyView> {
             .collection('teachers')
             .doc(widget.teacherId));
 
-    if (_fromDate != null) {
-      query = query.where('date_start',
-          isGreaterThanOrEqualTo: Timestamp.fromDate(_fromDate!));
+    // Filter nach ausgewählten Schülern
+    if (selectedStudents.isNotEmpty) {
+      query = query.where('student_name', whereIn: selectedStudents);
     }
 
-    if (_toDate != null) {
-      query = query.where('date_end',
-          isLessThanOrEqualTo: Timestamp.fromDate(_toDate!));
+    // Filter nach ausgewähltem Fach
+    if (selectedSubject.isNotEmpty) {
+      query = query.where('subject', isEqualTo: selectedSubject);
     }
-
-    if (_fach != null && _fach!.isNotEmpty) {
-      query = query.where('subject', isEqualTo: _fach);
-    }
-
-    // Hier müsstest du deine Logik für die Schülername-Filterung hinzufügen, siehe vorherige Nachrichten.
-
     return query.snapshots();
   }
 
@@ -51,6 +44,136 @@ class _DailyViewState extends State<DailyView> {
   void initState() {
     super.initState();
     fetchTeacherName();
+  }
+
+  void _showFilterDialog() {
+    // Temporäre Zustände innerhalb des Dialogs
+    List<String> tempSelectedStudents = List.from(selectedStudents);
+    String tempSelectedSubject = selectedSubject;
+
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              title: Text('Filtern nach'),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  ElevatedButton(
+                    onPressed: () async {
+                      final List<String>? result = await Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => StudentSelectionPage(),
+                        ),
+                      );
+                      if (result != null) {
+                        setDialogState(() {
+                          tempSelectedStudents = result;
+                        });
+                      }
+                    },
+                    child: Text('Schüler auswählen'),
+                  ),
+                  // Zeigt die temporär ausgewählten Schüler an
+                  Wrap(
+                    children: tempSelectedStudents
+                        .map((e) => Chip(label: Text(e)))
+                        .toList(),
+                  ),
+
+                  ElevatedButton(
+                    onPressed: () async {
+                      final String? result = await Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => SubjectSelectionPage(),
+                        ),
+                      );
+                      if (result != null) {
+                        setDialogState(() {
+                          tempSelectedSubject = result;
+                        });
+                      }
+                    },
+                    child: Text('Fach auswählen'),
+                  ),
+                  // Zeigt das temporär ausgewählte Fach an
+                  Text('Ausgewählt: $tempSelectedSubject'),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    Navigator.pop(context); // Schließt den Filterdialog
+                    _applyFilters(tempSelectedStudents, tempSelectedSubject);
+                  },
+                  child: Text('Filtern'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
+  void _applyFilters(List<String> selectedStudents, String selectedSubject) {
+    setState(() {
+      this.selectedStudents = selectedStudents;
+      this.selectedSubject = selectedSubject;
+// Da setState aufgerufen wird, wird die UI neu gebaut, einschließlich des StreamBuilders,
+// der die aktualisierten Filter in _createFilteredQuery verwendet.
+    });
+  }
+
+  void _selectFilterOption(String filterType) async {
+    Navigator.pop(context); // Schließt den Dialog
+    if (filterType == 'students') {
+      final selectedStudents = await Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => StudentSelectionPage()),
+      );
+      if (selectedStudents != null) {
+        // Wende Filter mit den ausgewählten Schülern an
+      }
+    } else if (filterType == 'subjects') {
+      final selectedSubject = await Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => SubjectSelectionPage()),
+      );
+      if (selectedSubject != null) {
+        // Wende Filter mit dem ausgewählten Fach an
+      }
+    }
+  }
+
+  void _selectStudents() async {
+    final List<String>? results = await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => StudentSelectionPage()),
+    );
+
+    if (results != null) {
+      setState(() {
+        selectedStudents = results;
+      });
+    }
+  }
+
+  void _selectSubject() async {
+    final String? result = await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => SubjectSelectionPage()),
+    );
+
+    if (result != null) {
+      setState(() {
+        selectedSubject = result;
+      });
+    }
   }
 
   void fetchTeacherName() async {
@@ -68,133 +191,6 @@ class _DailyViewState extends State<DailyView> {
     }
   }
 
-  void _showFilterDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (context) {
-        // Initialisiere die Variablen für die Filterkriterien
-        DateTime? fromDate;
-        DateTime? toDate;
-        String? schuelerName;
-        String? fach;
-
-        return AlertDialog(
-          title: Text('Filter',
-              style: TextStyle(color: Colors.white)), // Titeltext weiß
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: <Widget>[
-                // Textfeld für den Namen des Schülers
-                TextFormField(
-                  decoration: InputDecoration(
-                    labelText: 'Name des Schülers',
-                    labelStyle:
-                        TextStyle(color: Colors.white), // Labeltext weiß
-                    icon: Icon(Icons.person, color: Colors.white), // Icon weiß
-                  ),
-                  style: TextStyle(color: Colors.white), // Eingabetext weiß
-                  onChanged: (value) {
-                    schuelerName = value;
-                  },
-                ),
-                // Textfeld für das Fach
-                TextFormField(
-                  decoration: InputDecoration(
-                    labelText: 'Fach',
-                    labelStyle:
-                        TextStyle(color: Colors.white), // Labeltext weiß
-                    icon: Icon(Icons.book, color: Colors.white), // Icon weiß
-                  ),
-                  style: TextStyle(color: Colors.white), // Eingabetext weiß
-                  onChanged: (value) {
-                    fach = value;
-                  },
-                ),
-                // Datum von
-                ListTile(
-                  title: Text(
-                      "Von: ${fromDate != null ? fromDate.toString() : 'Nicht gesetzt'}",
-                      style: TextStyle(color: Colors.white) // Text weiß
-                      ),
-                  trailing: Icon(Icons.calendar_today,
-                      color: Colors.white), // Icon weiß
-                  onTap: () async {
-                    DateTime? picked = await showDatePicker(
-                      context: context,
-                      initialDate: DateTime.now(),
-                      firstDate: DateTime(2000),
-                      lastDate: DateTime(2025),
-                      builder: (BuildContext context, Widget? child) {
-                        return Theme(
-                          data:
-                              ThemeData.dark(), // Dunkles Thema für DatePicker
-                          child: child!,
-                        );
-                      },
-                    );
-                    if (picked != null && picked != fromDate) {
-                      fromDate = picked;
-                    }
-                  },
-                ),
-                // Datum bis
-                ListTile(
-                  title: Text(
-                      "Bis: ${toDate != null ? toDate.toString() : 'Nicht gesetzt'}",
-                      style: TextStyle(color: Colors.white) // Text weiß
-                      ),
-                  trailing: Icon(Icons.calendar_today,
-                      color: Colors.white), // Icon weiß
-                  onTap: () async {
-                    DateTime? picked = await showDatePicker(
-                      context: context,
-                      initialDate: DateTime.now(),
-                      firstDate: DateTime(2000),
-                      lastDate: DateTime(2025),
-                      builder: (BuildContext context, Widget? child) {
-                        return Theme(
-                          data:
-                              ThemeData.dark(), // Dunkles Thema für DatePicker
-                          child: child!,
-                        );
-                      },
-                    );
-                    if (picked != null && picked != toDate) {
-                      toDate = picked;
-                    }
-                  },
-                ),
-              ],
-            ),
-          ),
-          actions: <Widget>[
-            TextButton(
-              child: Text('Abbrechen',
-                  style: TextStyle(color: Colors.white)), // Text weiß
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-            ),
-            TextButton(
-              child: Text('Filtern',
-                  style: TextStyle(color: Colors.white)), // Text weiß
-              onPressed: () {
-                setState(() {
-                  _fromDate = fromDate;
-                  _toDate = toDate;
-                  _schuelerName = schuelerName;
-                  _fach = fach;
-                });
-                Navigator.of(context).pop();
-              },
-            ),
-          ],
-        );
-      },
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -204,7 +200,7 @@ class _DailyViewState extends State<DailyView> {
             IconButton(
               icon: const Icon(Icons.filter_list),
               onPressed: () {
-                _showFilterDialog(context);
+                _showFilterDialog();
               },
             ),
             PopupMenuButton<String>(
