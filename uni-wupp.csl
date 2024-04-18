@@ -16,39 +16,60 @@
   <!-- Makro für Autoren -->
   <macro name="author">
     <names variable="author">
-      <name delimiter="/" initialize-with="" name-as-sort-order="all">
+      <name font-weight="bold" delimiter="; " initialize-with="" name-as-sort-order="all">
         <name-part name="family" font-weight="bold"/>
-        <name-part name="given"/>
+        <name-part name="given" font-weight="bold"/>
       </name>
+      <label form="short" prefix=", " text-case="capitalize-first"/>
+      <substitute>
+        <names variable="editor" />
+        <names variable="translator" />
+      </substitute>
+    </names>
+  </macro>
+  
+  <!-- Makro für Herausgeber, falls Autor nicht vorhanden -->
+  <macro name="editor">
+    <names variable="editor">
+      <name font-weight="bold" delimiter="; " initialize-with="" name-as-sort-order="all"/>
+      <label form="short" prefix=", " text-case="capitalize-first"/>
     </names>
   </macro>
 
   <!-- Zitation im Text -->
   <citation>
-    <layout delimiter="; ">
-      <group delimiter=" ">
+    <layout delimiter="; " suffix=".">
+      <group>
         <text macro="author"/>
-        <date variable="issued">
+        <date variable="issued" prefix=" ">
           <date-part name="year"/>
         </date>
+        <text variable="locator" prefix=", S. "/>
       </group>
     </layout>
   </citation>
 
   <!-- Bibliografie -->
-  <bibliography>
+  <bibliography hanging-indent="true">
+    <sort>
+      <key macro="author"/>
+      <key variable="issued"/>
+      <key variable="title"/>
+    </sort>
     <layout>
-      <text macro="author" suffix=". "/>
-      <text variable="title" font-style="italic" suffix=". "/>
-      <group delimiter=", " suffix=".">
-        <text variable="container-title" font-style="italic"/>
-        <text variable="volume" prefix="Vol. "/>
-        <text variable="issue" prefix="Issue "/>
-        <text variable="page" prefix="pp. "/>
-      </group>
+      <text macro="author"/>
       <date variable="issued" prefix=" (" suffix=").">
         <date-part name="year"/>
       </date>
+      <text variable="title" prefix=" " suffix=". "/>
+      <group prefix=" " delimiter=", ">
+        <text variable="container-title" form="short" font-style="italic"/>
+        <group delimiter=", ">
+          <text variable="volume" prefix="Vol. " />
+          <text variable="issue" prefix="No. " />
+        </group>
+        <text variable="page" prefix="S. "/>
+      </group>
     </layout>
   </bibliography>
 </style>
