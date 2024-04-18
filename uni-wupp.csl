@@ -26,7 +26,7 @@
   <!-- Makro für Herausgeber, falls Autor nicht vorhanden -->
   <macro name="editor">
     <names variable="editor">
-      <name font-weight="bold" delimiter="; " initialize-with="" name-as-sort-order="all"/>
+      <name font-weight="bold" delimiter="/ " initialize-with="" name-as-sort-order="all"/>
       <label form="short" prefix=", " text-case="capitalize-first"/>
     </names>
   </macro>
