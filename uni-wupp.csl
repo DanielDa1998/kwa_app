@@ -14,19 +14,14 @@
   </info>
 
   <!-- Makro für Autoren -->
-  <macro name="author">
-    <names variable="author">
-      <name font-weight="bold" delimiter="; " initialize-with="" name-as-sort-order="all">
-        <name-part name="family" font-weight="bold"/>
-        <name-part name="given" font-weight="bold"/>
-      </name>
-      <label form="short" prefix=", " text-case="capitalize-first"/>
-      <substitute>
-        <names variable="editor" />
-        <names variable="translator" />
-      </substitute>
-    </names>
-  </macro>
+ <macro name="author">
+  <names variable="author">
+    <name delimiter="/" initialize-with="" name-as-sort-order="all">
+      <name-part name="family" font-weight="bold"/>
+      <name-part name="given" font-weight="bold"/>
+    </name>
+  </names>
+</macro>
   
   <!-- Makro für Herausgeber, falls Autor nicht vorhanden -->
   <macro name="editor">
